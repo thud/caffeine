@@ -5,7 +5,7 @@
 //!
 //! This utility uses the
 //! [`codeforces-api`](https://crates.io/crates/codeforces-api) crate to allow
-//! you to interact with the 
+//! you to interact with the
 //! [Codeforces API](https://codeforces.com/apiHelp) from the command line or
 //! from within a custom script.
 //!

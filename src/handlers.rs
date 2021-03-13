@@ -120,7 +120,7 @@ pub fn login_command(args: &ArgMatches) {
         }
         k = k.trim().to_string();
         // If key input was empty, then don't ask for secret
-        if k.len() > 0 {
+        if !k.is_empty() {
             print!("API secret (required): ");
             stdout().flush().expect("unable to flush stdout?");
             let res = stdin().read_line(&mut s);
@@ -129,20 +129,15 @@ pub fn login_command(args: &ArgMatches) {
                 exit_with_error(e);
             }
             if s.is_empty() {
-                exit_with_error("API secret field is required (leave `API key`\
-                    field blank to ignore)".to_string());
+                exit_with_error(
+                    "API secret field is required (leave `API key`\
+                    field blank to ignore)"
+                        .to_string(),
+                );
             }
         }
-        let k = if !k.is_empty() {
-            Some(k)
-        } else {
-            None
-        };
-        let s = if !s.is_empty() {
-            Some(s)
-        } else {
-            None
-        };
+        let k = if !k.is_empty() { Some(k) } else { None };
+        let s = if !s.is_empty() { Some(s) } else { None };
 
         print!("handle or email (leave blank to ignore): ");
         stdout().flush().expect("unable to flush stdout?");
@@ -152,7 +147,7 @@ pub fn login_command(args: &ArgMatches) {
         }
         h = h.trim().to_string();
         // If username input was empty, then don't ask for password
-        if h.len() > 0 {
+        if !h.is_empty() {
             print!("password (required): ");
             stdout().flush().expect("unable to flush stdout?");
             let res = stdin().read_line(&mut p);
@@ -162,20 +157,15 @@ pub fn login_command(args: &ArgMatches) {
             p = p.trim().to_string();
 
             if p.is_empty() {
-                exit_with_error("password field is required (leave `handle or \
-                    email` field blank to ignore)".to_string());
+                exit_with_error(
+                    "password field is required (leave `handle or \
+                    email` field blank to ignore)"
+                        .to_string(),
+                );
             }
         }
-        let h = if !h.is_empty() {
-            Some(h)
-        } else {
-            None
-        };
-        let p = if !p.is_empty() {
-            Some(p)
-        } else {
-            None
-        };
+        let h = if !h.is_empty() { Some(h) } else { None };
+        let p = if !p.is_empty() { Some(p) } else { None };
 
         println!("saving keys to auth.yml");
         match auth::set_auth_creds(k, s, h, p) {
@@ -219,11 +209,7 @@ pub fn config_command(args: &ArgMatches) {
         }
         p = p.trim().to_string();
 
-        let u = if !u.is_empty() {
-            Some(u)
-        } else {
-            None
-        };
+        let u = if !u.is_empty() { Some(u) } else { None };
         let p: Option<i64> = if !p.is_empty() {
             match p.parse() {
                 Ok(n) => Some(n),

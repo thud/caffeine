@@ -99,7 +99,8 @@ pub fn submit_from_string(
                         Err(_) => {
                             #[cfg(feature = "debug-screenshot")]
                             let _ = debug_screenshot(
-                                &tab, &format!("ss_waitingforres/{}.jpg", i)
+                                &tab,
+                                &format!("ss_waitingforres/{}.jpg", i),
                             );
 
                             i += 1;
@@ -108,7 +109,7 @@ pub fn submit_from_string(
                     }
                 }
             });
-            
+
             #[cfg(feature = "debug-screenshot")]
             let _ = debug_screenshot(&tab, "ss_aftersubmission.jpg");
 
@@ -192,7 +193,7 @@ fn attempt_tab_submit(
 
     #[cfg(feature = "debug-screenshot")]
     let _ = debug_screenshot(tab, "ss_beforesubmit.jpg")?;
-    
+
     tab.evaluate(&format!("$('[name=source]').val({:?});", src), true)?;
     tab.wait_for_element("input[value=Submit]")?.click()?;
     Ok(())
