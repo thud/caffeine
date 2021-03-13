@@ -16,3 +16,7 @@ failure = "~0.1.8"
 
 [features]
 debug-screenshot = []
+
+[[bin]]
+name = "caffeine"
+path = "src/main.rs"
