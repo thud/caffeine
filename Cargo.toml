@@ -1,6 +1,6 @@
 [package]
 name = "caffeine-cf"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["thud"]
 edition = "2018"
 description = "CLI tool for accessing the Codeforces API easily."
