@@ -26,3 +26,6 @@ Then, you can build and run with `cargo run`. eg:
 ```
 cargo r -- user info thud
 ```
+[Docs](https://docs.rs/caffeine-cf) |
+[Crate](https://crates.io/crates/caffeine-cf) |
+[License](LICENSE)

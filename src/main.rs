@@ -1,3 +1,43 @@
+//! caffeine-cf bin crate - CLI tool for easily interacting with the
+//! [Codeforces](https://codeforces.com/) API.
+//!
+//! ![caffeine logo](https://github.com/thud/caffeine/raw/master/caffeine.png)
+//!
+//! This utility uses the
+//! [`codeforces-api`](https://crates.io/crates/codeforces-api) crate to allow
+//! you to interact with the 
+//! [Codeforces API](https://codeforces.com/apiHelp) from the command line or
+//! from within a custom script.
+//!
+//! ### Authentication
+//! As of the current version of the
+//! [`codeforces-api`](https://crates.io/crates/codeforces-api) crate, an API
+//! key and secret is required with every request made. Instructions to
+//! generate these can be found [here](https://codeforces.com/apiHelp) (in the
+//! Authorization section). To provide `caffeine` with your key/secret, you
+//! will need to either run `caffeine login` or provide them as arguments by
+//! using the `--key`/`-k` and `--secret`/`-s` flags (see `caffeine help`).
+//!
+//! ### Functionality:
+//! - Full access to the every API method provided by the Codeforces platform.
+//! - Download testcases for any given problem.
+//! - Submit solution to any given problem from either a file or `stdin`.
+//! - Stores default settings in a config file.
+//! - Stores login details in a file for easier usage.
+//!
+//! ### Submitting Solutions
+//! Solutions are submitted by using the
+//! [`headless_chrome`](https://crates.io/crates/headless_chrome) crate. This
+//! requires you to have a chromium-based browser installed in order for it to
+//! work. If your browser is not auto-detected by `headless_chrome`, then you
+//! should try setting the `CHROME` environment variable before running. For
+//! Brave browser, for example, you might run `export CHROME=/usr/bin/brave`.
+//!
+//! Submitting solutions also requires that you provide your username and
+//! password. You can provide these with `caffeine login` or more explicitly
+//! with the `--handle`/`-H` and `--password`/`-p` flags.
+//!
+
 use clap::{crate_version, App, Arg};
 mod auth;
 mod config;
