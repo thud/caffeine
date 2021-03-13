@@ -1,8 +1,13 @@
 [package]
 name = "caffeine-cf"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["thud"]
 edition = "2018"
+description = "CLI tool for accessing the Codeforces API easily."
+repository = "https://github.com/thud/caffeine"
+documentation = "https://docs.rs/caffeine-cf/"
+readme = "README.md"
+license = "MIT"
 
 [dependencies]
 clap = "~2.33.3"
