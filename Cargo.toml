@@ -1,5 +1,5 @@
 [package]
-name = "caffeine"
+name = "caffeine-cf"
 version = "0.1.0"
 authors = ["thud"]
 edition = "2018"
