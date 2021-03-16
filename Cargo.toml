@@ -8,6 +8,7 @@ repository = "https://github.com/thud/caffeine"
 documentation = "https://docs.rs/caffeine-cf/"
 readme = "README.md"
 license = "MIT"
+exclude = ["caffeine.png", "/doc/"]
 
 [dependencies]
 clap = "2.33.3"
