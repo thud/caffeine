@@ -64,6 +64,12 @@ Submitting solutions also requires that you provide your username and
 password. You can provide these with `caffeine login` or more explicitly
 with the `--handle`/`-H` and `--password`/`-p` flags.
 
+## Examples
+For an example use-case for `caffeine`, see the [`cpsetup`](examples/cpsetup)
+(mostly POSIX compliant) shell script. It provides a comprehensive example of
+how `caffeine` could be utilised in a script to provide the user with lots of
+useful functionality.
+
 [Docs](https://docs.rs/caffeine-cf) |
 [Crate](https://crates.io/crates/caffeine-cf) |
 [License](LICENSE)
