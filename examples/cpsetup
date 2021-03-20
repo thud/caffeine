@@ -1,0 +1,431 @@
+#!/bin/sh
+#
+# This is an example script designed to show a possible use of the program
+# `caffeine` (https://github.com/thud/caffeine).
+#
+# It provides the following (configurable) functionality.
+# - Download testcases for a given contest and place into files.
+# - Generate solution files from a template.
+# - Poll user submissions, notifying the user on submission events.
+#
+# This script assumes that you have a folder structure similar to the following
+# format (though it can be easily configured differently):
+#
+# |-- template.cpp
+# |-- contest_name
+# |   |-- a.cpp
+# |   |-- ain
+# |   |-- b.cpp
+# |   |-- bin
+# |   |-- c1.cpp
+# |   |-- c1in
+# |   |-- c2.cpp
+# |   |-- c2in
+# |   |-- c2in2
+# |   |-- d.cpp
+# |   |-- e.cpp
+# |   |-- ein
+# |   |-- ein2
+# |   |-- ein3
+# |   `-- ein4
+# .
+# .
+# .
+#
+# It is made capable of any folder structure or programming language by having
+# adjustable filenames. However, this example is setup to follow the structure
+# given above which requires you to have a template file in the parent dir of
+# the contest directory.
+#
+
+USAGE="USAGE:
+    cpsetup <CONTESTNAME> [CONTESTID]";
+HELP="cpsetup 0.1.0
+thud <thud.dev>
+An example script for setting up code for a Codeforces contest.
+
+It automatically downloads testcases (placing them into labelled files);
+creates a configurable folder structure for a contest; generates solutions
+(from a template) based on defaults (and or fetched problem names); and polls
+for changes in submissions, using notify-send to provide native notifications.
+
+Note that this script relies on \`caffeine\` (https://github.com/thud/caffeine)
+being installed and in your \$PATH for it to work.
+
+$USAGE
+
+FLAGS:
+    -h, --help       Prints help information";
+
+
+# The following constants allow you to configure the folder structure of this
+# scripts output.
+
+# Program to use for choosing the contest (if $2 empty).
+SELECTOR_PROGRAM="fzf";
+SOLUTION_FILE_EXTENSION=".cpp";
+
+# Formatting of filenames for downloaded testcases.
+TESTCASE_FN="<problem>in<num>";
+
+# Formatting of filenames for solutions.
+SOLUTION_FN="<problem>$SOLUTION_FILE_EXTENSION";
+
+# Relative location of template file (assumed to be in the parent directory of
+# the current contest folder). (see above)
+SOLUTION_TEMPLATE_LOCATION="template$SOLUTION_FILE_EXTENSION";
+
+# Solution files to generate straight away (before contest questions are
+# available) (leave empty for none).
+DEFAULT_SOLUTIONS="a\nb\nc\nd\ne\nf";
+
+# list of users to watch (leave empty for default user's friends).
+USERS_TO_WATCH="";
+
+# Relative location for storing cached data (in order to check when a change in
+# standings/submissions has occurred.
+CACHE_DIR="/tmp/codeforces/<contestid>";
+
+# Time between polling Codeforces for submissions changes.
+POLL_DELAY="10";
+
+# Time between polling each individual Codeforces user for submissions changes.
+# Try increasing if the Codeforces servers are returning rate-limit errors.
+INTRA_POLL_DELAY="0";
+
+
+eprintln() {
+    echo -e "[*] $*" 1>&2;
+}
+
+eprint() {
+    echo -en "$*" 1>&2;
+}
+
+eprintln_failed() {
+    echo -e "[E] $*" 1>&2;
+}
+
+# format the name of a testcase file (based on $TESTCASE_FN) and write given
+# testcase data to file of that name.
+# USAGE: write_testcases "edu108" "c2" "3" "template_src_string"
+write_testcase() {
+    mkdir -p "$1";
+    tc_index="$3";
+    [ "$3" = "1" ] && tc_index="";
+    tc_filename="$(echo "$TESTCASE_FN" |
+        sed "s/<problem>/$2/g; s/<num>/$tc_index/g")";
+    tc_filepath="$1/$tc_filename";
+    [ -e "$tc_filepath" ] && return 1;
+    [ -n "$4" ] && echo -e "$4" > "$tc_filepath";
+    return 0;
+}
+
+# generate solution files from template with names given by a newline delimited
+# string.
+# USAGE: generate_solution_files "edu108" "a\nb\nc\nd1\nd2"
+generate_solution_files() {
+    mkdir -p "$1";
+    echo -e "$2" | while read -r pi
+    do
+        cp -n "$SOLUTION_TEMPLATE_LOCATION" "$1/$(echo "$SOLUTION_FN" |
+            sed "s/<problem>/$pi/g")"; # copy template to solution location.
+    done;
+}
+
+# parse the response from `caffeine contest testcases` and generate the
+# necessary files from the data.
+# USAGE: generate_from_problems "edu108"
+generate_from_problems() {
+    eprintln "Writing solutions from template...";
+    eprintln "running \`caffeine contest testcases $contest_id\`";
+    caffeine contest testcases "$contest_id" > \
+        "$cache_location/__testcases__";
+    if [ "$?" != "0" ]; then
+        eprintln_failed "\`caffeine contest testcases\` failed. (ABORTING)";
+        exit 2;
+    fi
+
+    current_testcase="";
+    testcase_index="0";
+    new_problem="0";
+    problem_names="test";
+    last_problem_name="";
+    last_testcase_index="1";
+    eprint "[*] Writing testcases: ";
+    while IFS= read -r line
+    do
+        [ "$line" = "--- NEW PROBLEM ---" ] && new_problem="1" && continue;
+        [ "$new_problem" = "1" ] &&
+            last_problem_name="$problem_name" &&
+            problem_name="$(echo "$line" | tr '[:upper:]' '[:lower:]')" && 
+            problem_names="$problem_names\n$problem_name" &&
+            new_problem="0" &&
+            testcase_index="0" &&
+            continue;
+
+        if [ "$line" = "+++ NEW TESTCASE +++" ]; then
+            testcase_index="$((testcase_index + 1))";
+            [ "$testcase_index" = "2" ] && last_problem_name="$problem_name";
+            [ -n "$last_problem_name" ] &&
+                eprint "${last_problem_name}[$last_testcase_index], ";
+            write_testcase "$1" "$last_problem_name" \
+                "$last_testcase_index" "$current_testcase";
+            last_testcase_index="$testcase_index";
+            current_testcase="";
+            continue;
+        fi
+
+        [ -n "$current_testcase" ] &&
+            current_testcase="$current_testcase\n$line" ||
+            current_testcase="$line";
+
+    done < "$cache_location/__testcases__";
+
+    # (handle last testcase)
+    [ -n "$problem_name" ] && eprint "${problem_name}[$testcase_index]";
+    write_testcase "$1" "$problem_name" "$testcase_index" "$current_testcase";
+
+    echo "" 1>&2;
+
+    problem_names="$(echo -e "$problem_names" | awk '(NR>1)')";
+    generate_solution_files "$1" "$problem_names";
+}
+
+# get contest id by using the custom $SELECTOR_PROGRAM of choice (eg. fzf)
+# (only used if contest_id not explicitly given as CLI argument).
+# USAGE: get_contest_id
+get_contest_id() {
+    eprintln "No contest id provided. Using $SELECTOR_PROGRAM to find id...";
+
+    full_contest_name="$(echo "$contests" |
+        awk '/name:/ {$1=""; print $0}' |   # Grab name fields,
+        sed 's/\("\|^\s*\|\s*$\)//g' |      # trim whitespace,
+        "$SELECTOR_PROGRAM")";              # pipe names into selector.
+    eprintln "$full_contest_name";
+
+    name_ln="$(echo "$contests" | # Find line number of contest name.
+        grep -n "$full_contest_name" |
+        awk '{print $0} NR==1{exit}')";
+
+    echo "$contests" | # Get contest id from line number.
+        awk -v l="$name_ln" 'NR == l - 1 {print $3}';
+}
+
+# get time to contest start by parsing the list of contests and finding the
+# correct row/column for the relative start time of the contest.
+# USAGE: get_contest_time_to_start
+get_contest_time_to_start() {
+    id_ln="$(echo "$contests" | # Find line number of contest name.
+        grep -n "\- id: $contest_id" |
+        awk -F ':' '{print $1}')";
+
+    st="$(echo "$contests" | # Get contest start time.
+        awk -v l="$id_ln" 'NR == l + 6 {print $2}')";
+
+    [ "$st" != "~" ] && st="$((st * -1))";
+
+    echo "$st";
+}
+
+# get contest duration by parsing the list of contests and finding the correct
+# row/column for the duration of the contest.
+# USAGE: get_contest_duration
+get_contest_duration() {
+    id_ln="$(echo "$contests" | # Find line number of contest name.
+        grep -n "\- id: $contest_id" |
+        awk -F ':' '{print $1}')"; # There was a change HERE
+
+    st="$(echo "$contests" | # Get contest start time.
+        awk -v l="$id_ln" 'NR == l + 4 {print $2}')";
+
+    echo "$st";
+}
+
+# get default user and their friends.
+# USAGE: get_user_watch_list
+get_user_watch_list() {
+    caffeine user info | awk '/- handle:/ { print $3 }' || return 1;
+    caffeine user friends | awk 'NR>1 { print $2 }';
+}
+
+# notify the user of new submissions.
+# USAGE: notify_new_submission "user1" "C2" "WRONG_ANSWER"
+notify_new_submission() {
+    notify-send "Codeforces Submission ($1)" "Problem: $2\n$3";
+}
+
+# notify the user of verdict changes on 'old' submissions.
+# USAGE: notify_verdict_change "user1" "C2" "WRONG_ANSWER"
+notify_verdict_change() {
+    notify-send "Codeforces Submission ($1)" "Problem: $2\n$3 \
+        (verdict change)";
+}
+
+# watch user submissions to detect when a submission has been made, notifying
+# the user in each case.
+# USAGE: watch_changes "1494"
+watch_changes() {
+    eprintln "Watching for submissions changes";
+
+    # setup users to watch.
+    [ -z "$USERS_TO_WATCH" ] &&
+        eprintln_failed "No users to watch." &&
+        return 0;
+    utw_path="$(echo "$CACHE_DIR" | sed "s/<contestid>/users_to_watch/g")";
+    echo "$USERS_TO_WATCH" > "$utw_path";
+
+    # - main loop - #
+    while true
+    do
+        # check if end time is in the past (if so, quit).
+        [ -n "$contest_start_time" ] && [ "$contest_duration" != "~" ] &&
+            t="$(date '+%s')" &&
+            [ "$((t - contest_start_time))" -gt "$contest_duration" ] && 
+            eprintln "Contest has ended." &&
+            return 0;
+
+        # loop through user submissions
+        comma="0";
+        eprint "[*] Polling users: ";
+        while read -r user
+        do
+            [ "$comma" = "1" ] && eprint ", " || comma="1";
+            eprint "$user ";
+
+            # grab latest submission for the current user.
+            latest_submission="$(caffeine user status -n1 "$user")";
+
+            # check latest_submission is a real submission.
+            [ "$(echo "$latest_submission" | wc -l)" -lt 10 ] &&
+                eprint "[E]" &&
+                continue;
+
+            # check latest_submission was for the current contest.
+            submission_contest_id="$(echo "$latest_submission" |
+                awk '/contestId:/ { print $2; exit }')";
+            [ "$submission_contest_id" != "$1" ] &&
+                eprint "[ ]" &&
+                continue;
+
+            # get submission ids of latest submission and one before
+            latest_submission_id="$(echo "$latest_submission" |
+                awk '/- id:/ { print $3; exit }')";
+            prev_submission_id="";
+            [ -s "$cache_location/$user" ] &&
+                prev_submission_id="$(awk 'NR==1' "$cache_location/$user")";
+
+            # get submission verdicts of latest submission and one before
+            latest_submission_vd="$(echo "$latest_submission" |
+                awk '/verdict:/ { print $2; exit }')";
+            prev_submission_vd="$latest_submission_vd";
+            [ -s "$cache_location/$user" ] &&
+                prev_submission_vd="$(awk 'NR==2' "$cache_location/$user")";
+
+            if [ "$latest_submission_id" != "$prev_submission_id" ]; then
+                # if submission id changed, notify.
+                latest_submission_problem="$(echo "$latest_submission" |
+                    awk '/index:/ { print $2; exit }')";
+                eprint "[+]";
+                notify_new_submission "$user" "$latest_submission_problem" \
+                    "$latest_submission_vd";
+            elif [ "$latest_submission_vd" != "$prev_submission_vd" ]; then
+                # if submission verdict changed, notify.
+                latest_submission_problem="$(echo "$latest_submission" |
+                    awk '/index:/ { print $2; exit }')";
+                eprint "[*]";
+                notify_verdict_change "$user" "$latest_submission_problem" \
+                    "$latest_submission_vd";
+            else
+                eprint "[_]";
+            fi
+
+            # write new submission id and verdict to cache file.
+            echo -e "$latest_submission_id\n$latest_submission_vd" > \
+                "$cache_location/$user";
+
+            # sleep between users in case of API rate-limit errors.
+            sleep "$INTRA_POLL_DELAY";
+        done < "$utw_path";
+
+        echo "" 1>&2;
+
+        # sleep until next time.
+        sleep "$POLL_DELAY";
+    done;
+}
+
+[ "$(id -u)" = "0" ] &&
+  eprintln_failed "Please do not run as root." &&
+  exit 2;
+
+if [ -z "$1" ] || [ -n "$3" ]; then
+    echo "$USAGE" 1>&2;
+    exit 1;
+fi
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ] ||
+    [ "$2" = "-h" ] || [ "$2" = "--help" ]; then
+    echo "$HELP" 1>&2;
+    exit 1;
+fi
+
+command -v 'caffeine' 2>&1 >/dev/null ||
+    (eprintln_failed "\`caffeine\` is not installed (or in \$PATH). \
+See https://github.com/thud/caffeine" &&
+    exit 2);
+
+
+# --- main program --- #
+
+# get list of contests.
+contests="$(caffeine contest list)";
+
+# get id for contest.
+contest_id="${2:-"$(get_contest_id)"}";
+full_contest_name="";
+[ -z "$contest_id" ] && eprintln_failed "Unable to find contest id." && exit 2;
+eprintln "Found contest id: $contest_id";
+
+# setup cache directory.
+cache_location="$(echo $CACHE_DIR | sed "s/<contestid>/$contest_id/g")"
+mkdir -p "$cache_location" ||
+    (eprintln_failed "Failed to create cache dir." && exit 2);
+
+# get timing for the contest.
+contest_time_to_start="$(get_contest_time_to_start)";
+contest_start_time="";
+t="$(date '+%s')";
+[ "$contest_time_to_start" = "~" ] &&
+    eprintln_failed "No start time found for this contest." ||
+    contest_start_time="$((t + contest_time_to_start))";
+[ "$contest_time_to_start" != "~" ] &&
+    ([ "$contest_time_to_start" -gt "0" ] &&
+    eprintln "Contest starts in $contest_time_to_start seconds." ||
+    eprintln "Contest has already started.");
+contest_duration="$(get_contest_duration)";
+
+# generate default solutions if contest hasn't started yet, then sleep until
+# start if possible.
+[ "$contest_time_to_start" != "~" ] && [ "$contest_time_to_start" -gt "0" ] &&
+    eprintln "Generating default solutions (contest hasn't yet started)." &&
+    generate_solution_files "$1" "$DEFAULT_SOLUTIONS" &&
+    eprintln "Sleeping $contest_time_to_start seconds to start." &&
+    sleep "$contest_time_to_start" ||
+    eprintln "Not sleeping since time to start is invalid or in the past.";
+
+# from here on, we are now inside the contest time (or after it has finished).
+
+# generate solution files if haven't done so already.
+generate_from_problems "$1" &&
+    eprintln "Generated problems from Codeforces succesfully." ||
+    ([ -n "$DEFAULT_SOLUTIONS" ] &&
+    generate_solution_files "$1" "$DEFAULT_SOLUTIONS" &&
+    eprintln "Generated default solutions successfully.");
+
+# poll submissions / standings changes
+[ "$contest_time_to_start" != "~" ] &&
+    USERS_TO_WATCH="${USERS_TO_WATCH:-"$(get_user_watch_list)"}" &&
+    watch_changes "$contest_id";
+
+eprintln "Done.";
