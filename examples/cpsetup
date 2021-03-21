@@ -87,7 +87,7 @@ USERS_TO_WATCH="";
 CACHE_DIR="/tmp/codeforces/<contestid>";
 
 # Time between polling Codeforces for submissions changes.
-POLL_DELAY="10";
+POLL_DELAY="60";
 
 # Time between polling each individual Codeforces user for submissions changes.
 # Try increasing if the Codeforces servers are returning rate-limit errors.
