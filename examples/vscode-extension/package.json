@@ -1,0 +1,101 @@
+{
+  "name": "caffeine-for-codeforces",
+  "displayName": "Caffeine for Codeforces",
+  "description": "Add Codeforces functionality directly into VSCode (submit, fetch testcases, etc.).",
+  "version": "0.0.1",
+  "icon": "caffeine.png",
+  "publisher": "thud",
+  "license": "MIT",
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/thud/caffeine"
+  },
+  "engines": {
+    "vscode": "^1.54.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:caffeine-for-codeforces.initContest",
+    "onCommand:caffeine-for-codeforces.submitToContest",
+    "onCommand:caffeine-for-codeforces.quitContest"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": [
+      {
+        "title": "Caffeine for Codeforces",
+        "properties": {
+            "caffeine-for-codeforces.rateLimiting.pollDelay": {
+                "description": "The time to wait between each run of checking user submissions.",
+                "default": 60,
+                "minimum": 0,
+                "type": "number"
+            },
+            "caffeine-for-codeforces.rateLimiting.intraPollDelay": {
+                "description": "The time to wait between each individual check of a user's recent submissions (increase if rate limiting errors are occurring).",
+                "default": 0,
+                "minimum": 0,
+                "type": "number"
+            },
+            "caffeine-for-codeforces.filenames.templateFileLocation": {
+                "description": "The location of the template file from which all the solution files will be generated.",
+                "default": "/path/to/template",
+                "type": "string"
+            },
+            "caffeine-for-codeforces.filenames.defaultSolutionNames": {
+                "description": "The names of the default solutions to be generated if the contest has yet to start. Leave empty to ignore.",
+                "default": [],
+                "type": "array"
+            },
+            "caffeine-for-codeforces.filenames.solutionFilename": {
+                "description": "The name of the solution file will be formatted using this pattern (<problem> = lower case problem index eg. c2 or b).",
+                "default": "<problem>.cpp",
+                "type": "string"
+            },
+            "caffeine-for-codeforces.filenames.testcaseFilename": {
+                "description": "The name of the testcase file will be formatted using this pattern (<problem> = lower case problem index eg. c2 or b, <num> = index of testcase for given problem).",
+                "default": "<problem>in<num>.txt",
+                "type": "string"
+            }
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "caffeine-for-codeforces.initContest",
+        "title": "Initialise Codeforces Contest Folder"
+      },
+      {
+        "command": "caffeine-for-codeforces.submitToContest",
+        "title": "Submit Solution to Current Codeforces Contest"
+      },
+      {
+        "command": "caffeine-for-codeforces.quitContest",
+        "title": "Quit Caffeine for Current Codeforces Contest"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.3",
+    "@types/mocha": "^8.0.4",
+    "@types/node": "^12.11.7",
+    "@types/vscode": "^1.54.0",
+    "@typescript-eslint/eslint-plugin": "^4.14.1",
+    "@typescript-eslint/parser": "^4.14.1",
+    "eslint": "^7.19.0",
+    "glob": "^7.1.6",
+    "mocha": "^8.2.1",
+    "typescript": "^4.1.3",
+    "vscode-test": "^1.5.0"
+  }
+}
