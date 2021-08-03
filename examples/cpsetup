@@ -77,7 +77,8 @@ SOLUTION_TEMPLATE_LOCATION="template$SOLUTION_FILE_EXTENSION";
 
 # Solution files to generate straight away (before contest questions are
 # available) (leave empty for none).
-DEFAULT_SOLUTIONS="a\nb\nc\nd\ne\nf";
+# eg. DEFAULT_SOLUTIONS="a\nb\nc\nd\ne\nf";
+DEFAULT_SOLUTIONS="a";
 
 # list of users to watch (leave empty for default user's friends).
 USERS_TO_WATCH="";
@@ -158,7 +159,7 @@ generate_from_problems() {
         [ "$line" = "--- NEW PROBLEM ---" ] && new_problem="1" && continue;
         [ "$new_problem" = "1" ] &&
             last_problem_name="$problem_name" &&
-            problem_name="$(echo "$line" | tr '[:upper:]' '[:lower:]')" && 
+            problem_name="$(echo "$line" | tr '[:upper:]' '[:lower:]')" &&
             problem_names="$problem_names\n$problem_name" &&
             new_problem="0" &&
             testcase_index="0" &&
@@ -407,10 +408,11 @@ contest_duration="$(get_contest_duration)";
 
 # generate default solutions if contest hasn't started yet, then sleep until
 # start if possible.
+contest_time_to_start_mins="$((contest_time_to_start / 60))";
 [ "$contest_time_to_start" != "~" ] && [ "$contest_time_to_start" -gt "0" ] &&
     eprintln "Generating default solutions (contest hasn't yet started)." &&
     generate_solution_files "$1" "$DEFAULT_SOLUTIONS" &&
-    eprintln "Sleeping $contest_time_to_start seconds to start." &&
+    eprintln "Sleeping $contest_time_to_start_mins mins to start." &&
     sleep "$contest_time_to_start" ||
     eprintln "Not sleeping since time to start is invalid or in the past.";
 
